@@ -54,7 +54,10 @@ sub render_uml (\%) {
 		png => { ext => ".png", flag => "-tpng" },
 		svg => { ext => ".svg", flag => "-tsvg" },
 	};
-	my $use_format = 'svg';
+	my $use_format = ($params{format} or 'svg');
+	if (! $format_info->{$use_format}{ext}) {
+		$use_format = 'svg';
+	}
 	my $dest=$params{page}."/uml-".$sha. $format_info->{$use_format}{ext};
 	will_render($params{page}, $dest);
 
