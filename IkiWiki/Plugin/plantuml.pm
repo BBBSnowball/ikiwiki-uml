@@ -13,6 +13,8 @@ sub import {
 	hook(type => "getsetup", id => "plantuml", call => \&getsetup);
 	hook(type => "needsbuild", id => "version", call => \&needsbuild);
 	hook(type => "preprocess", id => "uml", call => \&uml, scan => 1);
+	hook(type => "preprocess", id => "wbs", call => \&wbs, scan => 1);
+	hook(type => "preprocess", id => "plantuml", call => \&plantuml, scan => 1);
 }
 
 sub getsetup () {
@@ -34,6 +36,20 @@ sub needsbuild {
 			# remove state, will be re-added if
 			# the uml is still there during the rebuild
 			delete $pagestate{$page}{uml};
+		}
+		if (exists $pagestate{$page}{wbs} &&
+		    exists $pagesources{$page} &&
+		    grep { $_ eq $pagesources{$page} } @$needsbuild) {
+			# remove state, will be re-added if
+			# the wbs is still there during the rebuild
+			delete $pagestate{$page}{wbs};
+		}
+		if (exists $pagestate{$page}{plantuml} &&
+		    exists $pagesources{$page} &&
+		    grep { $_ eq $pagesources{$page} } @$needsbuild) {
+			# remove state, will be re-added if
+			# the plantuml is still there during the rebuild
+			delete $pagestate{$page}{plantuml};
 		}
 	}
 	return $needsbuild;
@@ -61,10 +77,10 @@ sub render_uml (\%) {
 	my $dest=$params{page}."/uml-".$sha. $format_info->{$use_format}{ext};
 	will_render($params{page}, $dest);
 
-	$src = "\@startuml\n"
+	$src = "$params{starttag}\n"
 		. "\' ".urlto($dest, $params{destpage}) . "\n"
 		. $src
-		. "\n\@enduml\n";
+		. "\n$params{endtag}\n";
 
 	print STDERR "$src\n";
 	print STDERR $config{destdir}."\n";
@@ -107,6 +123,30 @@ sub render_uml (\%) {
 }
 
 sub uml (@) {
+	my %params=@_;
+	my $key;
+
+	#print STDERR "src = " . $params{src};
+	$params{jar} = dirname($INC{"IkiWiki/Plugin/plantuml.pm"})."/plantuml.jar";
+	$params{starttag} = "\@startuml";
+	$params{endtag} = "\@enduml";
+
+	return render_uml(%params);
+}
+
+sub wbs (@) {
+	my %params=@_;
+	my $key;
+
+	#print STDERR "src = " . $params{src};
+	$params{jar} = dirname($INC{"IkiWiki/Plugin/plantuml.pm"})."/plantuml.jar";
+	$params{starttag} = "\@startwbs";
+	$params{endtag} = "\@endwbs";
+
+	return render_uml(%params);
+}
+
+sub plantuml (@) {
 	my %params=@_;
 	my $key;
 
