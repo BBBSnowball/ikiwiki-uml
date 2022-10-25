@@ -98,8 +98,12 @@ sub render_uml (\%) {
 		error gettext("failed to run java -jar $params{jar}") if ($sigpipe || $?);
 	}
 
-	return "<img src=\"".urlto($dest, $params{destpage}).
-		"\" />\n";
+	my $url = urlto($dest, $params{destpage});
+	if ($use_format eq "svg") {
+		return "<object data=\"$url\" type=\"image/svg+xml\"></object>";
+	} else {
+		return "<img src=\"$url\" />\n";
+	}
 }
 
 sub uml (@) {
