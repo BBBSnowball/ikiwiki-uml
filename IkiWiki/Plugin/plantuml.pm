@@ -98,7 +98,7 @@ sub render_uml (\%) {
 		my $pid;
 		my $sigpipe=0;
 		$SIG{PIPE}=sub { $sigpipe=1 };
-		$pid=open2(*IN, *OUT, "java -jar $params{jar} -charset UTF-8 -pipe @{[ $format_info->{$use_format}{flag} ]} > '$config{destdir}/$dest'");
+		$pid=open2(*IN, *OUT, "java -jar $params{jar} -charset UTF-8 -pipe @{[ $format_info->{$use_format}{flag} ]} > '$config{destdir}/$dest' 2> '$config{destdir}/$dest.err'");
 
 		# open2 doesn't respect "use open ':utf8'"
 		binmode (IN, ':utf8');
@@ -111,14 +111,25 @@ sub render_uml (\%) {
 
 		waitpid $pid, 0;
 		$SIG{PIPE}="DEFAULT";
-		error gettext("failed to run java -jar $params{jar}") if ($sigpipe || $?);
+		# Actually, don't abort here on error because PlantUML may have generated an image with an error
+		# and we want to show the error message and error image regardless of whether it already existed.
+		#error gettext("failed to run java -jar $params{jar}") if ($sigpipe || $?);
+	}
+
+	my $errmsg = "";
+	if (-e "$config{destdir}/$dest.err") {
+		open my $fh, '<', "$config{destdir}/$dest.err" or die "failed to run java -jar $params{jar}";
+		$errmsg = do { local $/; <$fh> };
+		if ($errmsg ne "") {
+			$errmsg = "<font color=red><pre>".CGI::escapeHTML($errmsg)."</pre></font>";
+		}
 	}
 
 	my $url = urlto($dest, $params{destpage});
 	if ($use_format eq "svg") {
-		return "<object data=\"$url\" type=\"image/svg+xml\"></object>";
+		return $errmsg."<object data=\"$url\" type=\"image/svg+xml\"></object>";
 	} else {
-		return "<img src=\"$url\" />\n";
+		return $errmsg."<img src=\"$url\" />\n";
 	}
 }
 
